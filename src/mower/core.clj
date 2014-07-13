@@ -1,15 +1,16 @@
 (ns mower.core
   (:require [clojure.walk :as walk]))
 
-(defn apply-mixins [definitions mixins]
-  (let [map-ident (fn [k v] {k v})
-        apply-one (fn [[k v]]
-                    (let [mixin (get mixins k map-ident)]
-                      (mixin k v)))]
-    (into {} (mapcat apply-one definitions))))
+(defmulti mixin
+  (fn [[k _]] (keyword k))
+  :default ::default)
 
-(defn process [css processors]
+(defmethod mixin ::default [[k v]] {k v})
+
+(defn apply-mixins [definitions]
+  (into {} (mapcat mixin definitions)))
+
+(defn process [css]
   (walk/postwalk
-    (fn [v] (if (map? v) (apply-mixins v processors)
-                         v))
+    #(if (map? %) (apply-mixins %) %)
     css))
